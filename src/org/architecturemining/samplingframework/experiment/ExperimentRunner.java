@@ -30,6 +30,7 @@ public class ExperimentRunner implements Logger {
 		globalContext.getMainPluginContext().getLoggingListeners().add(this);
 	
 		Experiment exp = new Experiment();
+		
 		exp.run(globalContext.getMainPluginContext());
 				
 		return null;
