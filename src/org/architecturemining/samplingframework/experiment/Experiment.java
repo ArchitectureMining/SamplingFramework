@@ -5,10 +5,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.architecturemining.samplingframework.algorithms.DirectlyFollowsComputer;
+import org.architecturemining.samplingframework.models.DirectlyFollowsFrequencyMatrix;
 import org.deckfour.xes.model.XLog;
-import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
-import org.processmining.framework.packages.PackageManager.Canceller;
 import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.PluginDescriptor;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.framework.plugin.events.Logger.MessageLevel;
@@ -19,12 +20,6 @@ import org.processmining.log.csvimport.CSVConversion;
 import org.processmining.log.csvimport.CSVConversion.ConversionResult;
 import org.processmining.log.csvimport.config.CSVConversionConfig;
 import org.processmining.log.csvimport.exception.CSVConversionException;
-import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTreeReduce.ReductionFailedException;
-import org.processmining.plugins.InductiveMiner.efficienttree.UnknownTreeNodeException;
-import org.processmining.plugins.inductiveminer2.logs.IMLog;
-import org.processmining.plugins.inductiveminer2.mining.MiningParameters;
-import org.processmining.plugins.inductiveminer2.plugins.InductiveMinerPlugin;
-import org.processmining.plugins.inductiveminer2.variants.MiningParametersIMInfrequent;
 
 
 @Plugin(
@@ -80,39 +75,39 @@ public class Experiment {
 		return null;
 	}
 	
-	/**
-	 * Call the inductive miner
-	 * @param context
-	 * @return
-	 */
-	public AcceptingPetriNet mineWithInductiveMiner(PluginContext context, XLog xLog) {
-		MiningParameters parameters = new MiningParametersIMInfrequent();
-		IMLog log = parameters.getIMLog(xLog);
-		
-		try {
-			return InductiveMinerPlugin.minePetriNet(log, parameters, new Canceller() {
-				public boolean isCancelled() {
-					return context.getProgress().isCancelled();
+	private void printPluginOverview(final PluginContext context, String idpattern) {
+		for(PluginDescriptor plugin : context.getPluginManager().getAllPlugins(true)) {
+			if (plugin.getID().toString().contains(idpattern)) {
+				System.out.println("-----------");
+				System.out.println("ID  : " + plugin.getID());
+				System.out.println("Name: " + plugin.getName());
+				for(int i = 0 ; i < plugin.getNumberOfMethods(); i++) {
+					System.out.println("  " + i + ": " + plugin.getMethodLabel(i));
 				}
-			});
-		} catch (UnknownTreeNodeException | ReductionFailedException e) {
-			context.log(e);
+			}
 		}
+	}
+	
+	public void processFile(PluginContext context, String fileName) {
+		XLog log = createXESLogFromCSV(context, fileName);
 		
-		return null;
+		DirectlyFollowsFrequencyMatrix<String> matrix = DirectlyFollowsComputer.computeMatrix(log);
+		
+		
+		/*
+		AcceptingPetriNet net = DialogFreeInductiveMiner.mineWithInfrequentInductiveMiner(context, log);
+		
+		context.log("Places     : " + net.getNet().getPlaces().size());
+		context.log("Transitions: " + net.getNet().getTransitions().size());
+		*/
 	}
 	
 		
 	@PluginVariant( variantLabel = "Experiment - main", requiredParameterLabels = {})
 	public Object run(final PluginContext context) {
-		//return createXESLogFromCSV(context, "D:/projects/ProM/Data/ToAnalyseRoad2/1.csv");
-		XLog log = createXESLogFromCSV(context, "D:/projects/ProM/Data/ToAnalyseRoad2/1.csv");
 		
-		AcceptingPetriNet net = mineWithInductiveMiner(context, log);
+		processFile(context, "D:/projects/ProM/Data/ToAnalyseRoad2/1.csv");
 		
-		context.log("Places     : " + net.getNet().getPlaces().size());
-		context.log("Transitions: " + net.getNet().getTransitions().size());
-		
-		return net;
+		return null;
 	}
 }
