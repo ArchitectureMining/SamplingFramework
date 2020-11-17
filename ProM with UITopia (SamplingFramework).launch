@@ -21,6 +21,6 @@
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.processmining.contexts.uitopia.UI"/>
     <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="SamplingFramework"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="SamplingFramework"/>
-    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -Xmx1G -Djava.library.path=.//lib;.//stdlib -Djava.system.class.loader=org.processmining.framework.util.ProMClassLoader -Djava.util.Arrays.useLegacyMergeSort=true"/>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -Xmx4G -Djava.library.path=.//lib;.//stdlib -Djava.system.class.loader=org.processmining.framework.util.ProMClassLoader -Djava.util.Arrays.useLegacyMergeSort=true"/>
     <stringAttribute key="yk-options" value="&#13;&#10;additional-options=&#13;&#10;snapshots-dir=&#13;&#10;"/>
 </launchConfiguration>

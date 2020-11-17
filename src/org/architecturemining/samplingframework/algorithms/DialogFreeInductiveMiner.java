@@ -6,7 +6,8 @@ import org.processmining.framework.packages.PackageManager.Canceller;
 import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
-import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTreeReduce.ReductionFailedException;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2AcceptingPetriNet;
 import org.processmining.plugins.InductiveMiner.efficienttree.UnknownTreeNodeException;
 import org.processmining.plugins.inductiveminer2.logs.IMLog;
 import org.processmining.plugins.inductiveminer2.mining.MiningParameters;
@@ -34,12 +35,18 @@ public class DialogFreeInductiveMiner {
 		IMLog log = parameters.getIMLog(xLog);
 		
 		try {
-			return InductiveMinerPlugin.minePetriNet(log, parameters, new Canceller() {
+			EfficientTree tree = InductiveMinerPlugin.mineTree(log, parameters, new Canceller() { // InductiveMinerPlugin.minePetriNet(log, parameters, new Canceller() {
 				public boolean isCancelled() {
 					return context.getProgress().isCancelled();
 				}
 			});
-		} catch (UnknownTreeNodeException | ReductionFailedException e) {
+			
+			// EfficientTreeReduce.reduce(tree, new EfficientTreeReduceParametersForPetriNet(false));
+			AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(tree);
+			
+			return net;
+			
+		} catch (UnknownTreeNodeException e) { // catch (UnknownTreeNodeException | ReductionFailedException e) {
 			context.log(e);
 		}
 		
