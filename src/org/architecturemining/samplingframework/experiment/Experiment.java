@@ -1,7 +1,9 @@
 package org.architecturemining.samplingframework.experiment;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,9 +20,10 @@ import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
 import org.processmining.acceptingpetrinet.plugins.ExportAcceptingPetriNetPlugin;
 import org.processmining.eigenvalue.generator.GenerateLogAndModel;
 import org.processmining.eigenvalue.generator.NAryTreeGenerator;
+import org.processmining.entropia.models.EntropyMeasure;
+import org.processmining.entropia.models.impl.EntropyMeasureImpl;
 import org.processmining.entropia.plugins.EntropyPrecisionRecallMeasurePlugin;
 import org.processmining.framework.plugin.PluginContext;
-import org.processmining.framework.plugin.PluginDescriptor;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.framework.plugin.events.Logger.MessageLevel;
@@ -31,6 +34,8 @@ import org.processmining.log.csvimport.CSVConversion;
 import org.processmining.log.csvimport.CSVConversion.ConversionResult;
 import org.processmining.log.csvimport.config.CSVConversionConfig;
 import org.processmining.log.csvimport.exception.CSVConversionException;
+import org.processmining.models.graphbased.AttributeMap;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2AcceptingPetriNet;
 import org.processmining.plugins.InductiveMiner.efficienttree.ProcessTree2EfficientTree;
@@ -38,7 +43,6 @@ import org.processmining.plugins.etm.model.narytree.NAryTree;
 import org.processmining.plugins.etm.model.narytree.conversion.NAryTreeToProcessTree;
 import org.processmining.plugins.log.exporting.ExportLogXes;
 import org.processmining.processtree.ProcessTree;
-
 
 @Plugin(
 		name = "Experiment - runner",
@@ -91,22 +95,6 @@ public class Experiment {
 		}
 		
 		return null;
-	}
-	
-	
-	
-	
-	private void printPluginOverview(final PluginContext context, String idpattern) {
-		for(PluginDescriptor plugin : context.getPluginManager().getAllPlugins(true)) {
-			if (plugin.getID().toString().contains(idpattern)) {
-				System.out.println("-----------");
-				System.out.println("ID  : " + plugin.getID());
-				System.out.println("Name: " + plugin.getName());
-				for(int i = 0 ; i < plugin.getNumberOfMethods(); i++) {
-					System.out.println("  " + i + ": " + plugin.getMethodLabel(i));
-				}
-			}
-		}
 	}
 	
 	public void processFile(PluginContext context, String fileName) {
@@ -176,7 +164,8 @@ public class Experiment {
 			AcceptingPetriNet trueProcessNet = EfficientTree2AcceptingPetriNet.convert(efficientTrueProcess);
 			
 			// Step 1b, store the process model on disk
-			exportProcessModel(context, trueProcessNet, new File(basePath + "trueProcess.pnml"));
+			String trueProcessFileName = basePath + "trueProcess.pnml";
+			exportProcessModel(context, trueProcessNet, new File(trueProcessFileName));
 			
 			for(int logIteration = 0 ; logIteration < nrOfLogsPerModel ; logIteration++) {
 		
@@ -189,18 +178,22 @@ public class Experiment {
 				DirectlyFollowsFrequencyMatrix<String> dfOriginalLog = DirectlyFollowsComputer.computeMatrix(originalLog);
 				
 				// Step 2b, store the log on disk
-				exportLog(context, originalLog, new File(basePath + "/log" + logIteration + "/log.xes"));
+				String originalLogFileName = basePath + "/log" + logIteration + "/log.xes";
+				exportLog(context, originalLog, new File(originalLogFileName));
 				
 				// Step 3, calculate precision and recall wrt true process model
-				result.setLogQualityTrueProcess(epr.computeMeasure(context, originalLog, trueProcessNet));
+				// result.setLogQualityTrueProcess(epr.computeMeasure(context, originalLog, trueProcessNet));
+				result.setLogQualityTrueProcess(calculateRecallAndPrecision(context, originalLogFileName, trueProcessFileName));
 				
 				// Step 4a, discover a model from the log
 				AcceptingPetriNet discoveredModel = discoverModel(context, originalLog);
 				// Step 4b, store the model on disk
-				exportProcessModel(context, discoveredModel, new File( basePath + "/log" + logIteration + "/discovered.pnml"));
+				String discoveredModelFileName = basePath + "/log" + logIteration + "/discovered.pnml";
+				exportProcessModel(context, discoveredModel, new File(discoveredModelFileName));
 				
 				// Step 5, calculate precision and recall wrt discovered model
-				result.setLogQualityDiscoveredProcess(epr.computeMeasure(context, originalLog, discoveredModel));
+				// result.setLogQualityDiscoveredProcess(epr.computeMeasure(context, originalLog, discoveredModel));
+				result.setLogQualityDiscoveredProcess(calculateRecallAndPrecision(context, originalLogFileName, discoveredModelFileName));
 				
 				// To validate the results, we also add the sample qualities of the log with itself. Should return 1 for all measures
 				result.setSampleQuality(SampleMeasureComputer.computeMeasures(dfOriginalLog, dfOriginalLog, 1));
@@ -214,7 +207,8 @@ public class Experiment {
 						
 						// Step 6, create a sample
 						XLog sampleLog = createSample(originalLog, ratio);
-						exportLog(context, originalLog, new File(basePath + "/log" + logIteration + "/s" + ratio + "/s_" + ratio + "_" + sample + ".xes" ));
+						String sampleLogFileName = basePath + "/log" + logIteration + "/s" + ratio + "/s_" + ratio + "_" + sample + ".xes";
+						exportLog(context, originalLog, new File(sampleLogFileName));
 						
 						DirectlyFollowsFrequencyMatrix<String> dfSampleLog = DirectlyFollowsComputer.computeMatrix(sampleLog);
 						
@@ -222,24 +216,31 @@ public class Experiment {
 						sampleResult.setSampleQuality(SampleMeasureComputer.computeMeasures(dfOriginalLog, dfSampleLog, ratio));
 						
 						// Step 8, calculate precision and recall of sample wrt to true process model
-						sampleResult.setLogQualityTrueProcess(epr.computeMeasure(context, sampleLog, trueProcessNet));
+						// sampleResult.setLogQualityTrueProcess(epr.computeMeasure(context, sampleLog, trueProcessNet));
+						sampleResult.setLogQualityTrueProcess(calculateRecallAndPrecision(context, sampleLogFileName, trueProcessFileName));
 						
 						// Step 9, discover a model from the sample
 						AcceptingPetriNet discoveredSampleModel = discoverModel(context, sampleLog);
-						exportProcessModel(context, discoveredSampleModel, new File(basePath + "/log" + logIteration + "/s" + ratio + "/discovered_" + ratio + "_" + sample + ".pnml" ));
+						String discoveredSampleModelFileName = basePath + "/log" + logIteration + "/s" + ratio + "/discovered_" + ratio + "_" + sample + ".pnml";
+						exportProcessModel(context, discoveredSampleModel, new File(discoveredSampleModelFileName));
 						
 						// Step 10, calculate precision and recall of sample wrt discovered model
-						sampleResult.setSampleLogQualityDiscoveredProcess(epr.computeMeasure(context, sampleLog, discoveredSampleModel));
+						// sampleResult.setSampleLogQualityDiscoveredProcess(epr.computeMeasure(context, sampleLog, discoveredSampleModel));
+						sampleResult.setSampleLogQualityDiscoveredProcess(calculateRecallAndPrecision(context, sampleLogFileName, discoveredSampleModelFileName));
 						
 						// Step 11, calculate precision and recall of sample wrt discovered model
-						sampleResult.setLogQualityDiscoveredProcess(epr.computeMeasure(context, originalLog, discoveredSampleModel));
+						// sampleResult.setLogQualityDiscoveredProcess(epr.computeMeasure(context, originalLog, discoveredSampleModel));
+						sampleResult.setLogQualityDiscoveredProcess(calculateRecallAndPrecision(context, originalLogFileName, discoveredSampleModelFileName));
 						
 						// Add results
 						results.add(sampleResult);
-					}
-				}
+					} // End of sample
+					
+					ExperimentResult.export(results, new File(basePath + "/log"+ logIteration + "/results.csv"));
+					
+				} // End of Log
 				
-			}
+			} // End of Model
 		}
         
 		return null;
@@ -258,7 +259,9 @@ public class Experiment {
 	}
 
 	public AcceptingPetriNet discoverModel(PluginContext context, XLog log) {
-		return DialogFreeInductiveMiner.mineWithInfrequentInductiveMiner(context, log);
+		AcceptingPetriNet net = DialogFreeInductiveMiner.mineWithInfrequentInductiveMiner(context, log);
+		
+		return net;
 	}
 	
 	public XLog createSample(XLog originalLog, double ratio) {
@@ -266,7 +269,7 @@ public class Experiment {
 	}
 	
 	public String getBasePath() {
-		return "D:/projects/ProM/workspace/SamplingFramework/experiments/im/";
+		return "./experiments/im/";
 	}
 	
 
@@ -274,6 +277,15 @@ public class Experiment {
 	private ExportAcceptingPetriNetPlugin petriNetExporter = new ExportAcceptingPetriNetPlugin();
 			
 	protected void exportProcessModel(PluginContext context, AcceptingPetriNet net, File file) {
+		
+		// Rename all transitions that start with "tau " in the name to empty name
+		// This is required for the tool Entropia
+		for(Transition transition: net.getNet().getTransitions()) {
+			if (transition.getLabel().toLowerCase().startsWith("tau ")) {
+				transition.getAttributeMap().put(AttributeMap.LABEL, "");
+			}
+		}
+			
 		try {
 			// We need to create the file first, since otherwise the exporter crashes.
 			file.getParentFile().mkdirs();
@@ -293,5 +305,45 @@ public class Experiment {
 			context.log(e);
 		}
 				
+	}
+	
+	protected EntropyMeasure calculateRecallAndPrecision(PluginContext context, String logFile, String modelFile) {
+		
+		
+		//java -jar jbpt-pm-entropia-1.5.jar -empr -rel=janmartijn\log1\log.xes -ret=janmartijn\trueProcess.pnml
+		// add -silent for the real version
+		// First argument is: precision, Second is recall
+		
+		context.log("Start entropia on log: " + logFile + ", and model: " + modelFile, MessageLevel.NORMAL);
+		
+		String cmd = "java -jar ./experiments/entropia/jbpt-pm-entropia-1.5.jar -silent -empr -rel=" + logFile + " -ret=" + modelFile;
+		
+		double recall = 0;
+		double precision = 0;
+		
+		Runtime runtime = Runtime.getRuntime();
+		Process process;
+		try {
+			process = runtime.exec(cmd);
+			process.waitFor();
+			BufferedReader buffer = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			String line = "";
+			while((line = buffer.readLine()) != null) {
+				if (line.contains(",")) {
+					String[] elements = line.split(",");
+					if (elements.length >= 2) {
+						precision = Double.parseDouble(elements[0]);
+						recall = Double.parseDouble(elements[1]);
+						break;
+					}
+				}
+			}
+		} catch (IOException | InterruptedException e) {
+			context.log(e);
+			return new EntropyMeasureImpl(0.0, 0.0);
+		}
+		
+		context.log("Finished entropia", MessageLevel.NORMAL);
+		return new EntropyMeasureImpl(recall, precision);
 	}
 }
