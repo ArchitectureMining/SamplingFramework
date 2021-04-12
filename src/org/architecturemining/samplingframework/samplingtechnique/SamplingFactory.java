@@ -6,11 +6,11 @@ public class SamplingFactory {
 	
 	private static RandomSampler randomSampler = null;
 	
-	public static XLog createRandomSample(XLog log, double ratio) {
+	public static AbstractSampleGenerator createRandomSample(XLog log, double ratio) {
 		if (randomSampler == null) {
-			randomSampler = new RandomSampler();
+			randomSampler = new RandomSampler(log);
 		}
-		return randomSampler.generateSample(log, ratio);
+		return randomSampler;
 	}
 
 }

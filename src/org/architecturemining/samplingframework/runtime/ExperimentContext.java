@@ -1,4 +1,4 @@
-package org.architecturemining.samplingframework.experiment;
+package org.architecturemining.samplingframework.runtime;
 
 import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.PluginDescriptor;

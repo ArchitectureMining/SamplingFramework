@@ -5,9 +5,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
-import org.processmining.entropia.models.EntropyMeasure;
-
 public class ExperimentResult {
+	
+	public static final String HEADERLINE = "number;ratio;coverage;sRMSPE;sMAPE;NRMSE;NMAE;recallTP;precisionTP;recallDisc;precisionDisc;recallOrig;precisionOrig";
 	
 	private EntropyMeasure logQualityTrueProcess;
 	private EntropyMeasure logQualityDiscoveredProcess;
@@ -65,68 +65,81 @@ public class ExperimentResult {
 	}
 	
 	public static void export(List<ExperimentResult> results, File file) throws IOException {
-		FileWriter writer = new FileWriter(file);
+		boolean addFirstLine = true;
+		if (file.exists()) {
+			addFirstLine = false;
+		}
+		
+		FileWriter writer = new FileWriter(file, true);
+		
 		// sample number, sample ratio, Sample Quality
 		String firstline = "number;ratio;coverage;sRMSPE;sMAPE;NRMSE;NMAE;recallTP;precisionTP;recallDisc;precisionDisc;recallOrig;precisionOrig";
-		writer.write(firstline);
+		if (addFirstLine) {
+			writer.write(firstline);
+		}
+		
 		for(ExperimentResult r: results) {
-			StringBuffer sb = new StringBuffer();
-			// Always start with a newline
-			sb.append(System.lineSeparator());
-			
-			sb.append(r.getSampleNumber());
-			sb.append(";");
-			sb.append(r.getSampleRatio());
-			sb.append(";");
-			
-			if (r.getSampleQuality() == null) {
-				// if sample quality is not set, just write zeros in these positions
-				sb.append("0;0;0;0;0;"); 
-			} else {
-				sb.append(r.getSampleQuality().getCoverage());
-				sb.append(";");
-				sb.append(r.getSampleQuality().getSymmetricRootMeanSquarePercentageError());
-				sb.append(";");
-				sb.append(r.getSampleQuality().getSymmetricMeanAbsolutePercentageError());
-				sb.append(";");
-				sb.append(r.getSampleQuality().getNormalisedRootMeanSquareError());
-				sb.append(";");
-				sb.append(r.getSampleQuality().getNormalisedMeanAbsoluteError());
-				sb.append(";");
-			}
-			if (r.getLogQualityTrueProcess() == null) {
-				sb.append("0;0;");
-			} else {
-				sb.append(r.getLogQualityTrueProcess().getRecall());
-				sb.append(";");
-				sb.append(r.getLogQualityTrueProcess().getPrecision());
-				sb.append(";");
-			}
-			
-			if (r.getSampleLogQualityDiscoveredProcess() == null) {
-				sb.append("0;0;");
-			} else {
-				sb.append(r.getSampleLogQualityDiscoveredProcess().getRecall());
-				sb.append(";");
-				sb.append(r.getSampleLogQualityDiscoveredProcess().getPrecision());
-				sb.append(";");
-			}
-			
-			if (r.getLogQualityDiscoveredProcess() == null) {
-				sb.append("0;0");
-			} else {
-				sb.append(r.getLogQualityDiscoveredProcess().getRecall());
-				sb.append(";");
-				sb.append(r.getLogQualityDiscoveredProcess().getPrecision());
-			}
-			
-			writer.write(sb.toString());
+			writer.write(r.toString());
 		}
 		writer.close();
 	}
 
 	public int getSampleNumber() {
 		return sampleNumber;
-	}	
+	}
+	
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		// Always start with a newline
+		
+		sb.append(getSampleNumber());
+		sb.append(";");
+		sb.append(getSampleRatio());
+		sb.append(";");
+		
+		if (getSampleQuality() == null) {
+			// if sample quality is not set, just write zeros in these positions
+			sb.append("0;0;0;0;0;"); 
+		} else {
+			sb.append(getSampleQuality().getCoverage());
+			sb.append(";");
+			sb.append(getSampleQuality().getSymmetricRootMeanSquarePercentageError());
+			sb.append(";");
+			sb.append(getSampleQuality().getSymmetricMeanAbsolutePercentageError());
+			sb.append(";");
+			sb.append(getSampleQuality().getNormalisedRootMeanSquareError());
+			sb.append(";");
+			sb.append(getSampleQuality().getNormalisedMeanAbsoluteError());
+			sb.append(";");
+		}
+		if (getLogQualityTrueProcess() == null) {
+			sb.append("0;0;");
+		} else {
+			sb.append(getLogQualityTrueProcess().getRecall());
+			sb.append(";");
+			sb.append(getLogQualityTrueProcess().getPrecision());
+			sb.append(";");
+		}
+		
+		if (getSampleLogQualityDiscoveredProcess() == null) {
+			sb.append("0;0;");
+		} else {
+			sb.append(getSampleLogQualityDiscoveredProcess().getRecall());
+			sb.append(";");
+			sb.append(getSampleLogQualityDiscoveredProcess().getPrecision());
+			sb.append(";");
+		}
+		
+		if (getLogQualityDiscoveredProcess() == null) {
+			sb.append("0;0");
+		} else {
+			sb.append(getLogQualityDiscoveredProcess().getRecall());
+			sb.append(";");
+			sb.append(getLogQualityDiscoveredProcess().getPrecision());
+		}
+		
+		return sb.toString();
+	}
   
 }

@@ -1,4 +1,4 @@
-package org.architecturemining.samplingframework.experiment;
+package org.architecturemining.samplingframework.runtime;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;

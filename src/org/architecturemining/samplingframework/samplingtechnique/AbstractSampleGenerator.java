@@ -9,18 +9,28 @@ import org.deckfour.xes.model.impl.XEventImpl;
 import org.deckfour.xes.model.impl.XTraceImpl;
 
 public abstract class AbstractSampleGenerator {
+	
+	private XLog log;
+	
+	public AbstractSampleGenerator(XLog log) {
+		this.log = log;
+	}
+	
+	public XLog getLog() {
+		return log;
+	}
 
-	public XLog generateSample(XLog log, double ratio) {
+	public XLog drawSample(double ratio) {
 		XLog sample = XFactoryRegistry.instance().currentDefault().createLog();
 		
-		populateSample(log, sample, ratio);
+		populateSample(sample, ratio);
 		
 		return sample;
 	}
 	
-	protected abstract XLog populateSample(XLog log, XLog sample, double ratio);
+	protected abstract void populateSample(XLog sample, double ratio);
 	
-	protected void copyTraceToLog(XLog log, XTrace trace) {
+	protected void copyTraceToLog(XLog toAdd, XTrace trace) {
 		XAttributeMap traceMap = (XAttributeMap) trace.getAttributes().clone();
         XTrace copy = new XTraceImpl(traceMap);
         
@@ -29,6 +39,6 @@ public abstract class AbstractSampleGenerator {
         	copy.add(new XEventImpl(attMap));
         }
         
-        log.add(copy);
+        toAdd.add(copy);
 	}
 }

@@ -21,6 +21,14 @@ public class SampleMeasureComputer {
 		return computeMeasures(original, sample, ratio);
 	}
 	
+	public static SampleMeasureSummary computeMeasures(XLog originalLog, DirectlyFollowsFrequencyMatrix<String> sample, double ratio) {
+		return computeMeasures( DirectlyFollowsComputer.computeMatrix(originalLog), sample, ratio);
+	}
+	
+	public static SampleMeasureSummary computeMeasures(DirectlyFollowsFrequencyMatrix<String> original, XLog sampleLog, double ratio) {
+		return computeMeasures(original, DirectlyFollowsComputer.computeMatrix(sampleLog), ratio);
+	}
+	
 	public static SampleMeasureSummary computeMeasures(DirectlyFollowsFrequencyMatrix<String> original, DirectlyFollowsFrequencyMatrix<String> sample, double ratio) {
 		
 		double total = 0;
